@@ -55,15 +55,15 @@ func _step(inputs, outputs, start_mode, working_mem):
 		_seed_changed(inputs[2])
 		
 	if inputs[1]:
-		outputs[0] = SoftNoise.openSimplex2D(
+		outputs[0] = (SoftNoise.openSimplex2D(
 			inputs[0].x * inputs[1],
 			inputs[0].y * inputs[1]
-		)
+		) + 1) / 2
 	else:
-		outputs[0] = SoftNoise.openSimplex2D(
+		outputs[0] = (SoftNoise.openSimplex2D(
 			inputs[0].x,
 			inputs[0].y
-		)
+		) + 1) / 2
 	return 0
 
 var preScript = preload("SoftNoise.gd")

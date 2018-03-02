@@ -27,6 +27,8 @@ extends Spatial
 
 # Fix the camera
 
+export(Material) var terrain_material
+
 export(int) var chunk_resolution = 16 setget _set_chunk_resolution
 func _set_chunk_resolution(new_chunk_resolution):
 	chunk_resolution = new_chunk_resolution
@@ -76,10 +78,10 @@ func vlerp(a, b, c):
 	)
 	
 func add_all_attributes(mesh, vertex, uv, uv2, color):
-	mesh.add_vertex(vertex)
 	mesh.add_uv(uv)
 	mesh.add_uv2(uv2)
 	mesh.add_color(color)
+	mesh.add_vertex(vertex)
 
 func generate_chunk_mesh(chunk):
 	var temp_mesh_array = []
@@ -100,7 +102,7 @@ func generate_chunk_mesh(chunk):
 			)
 			
 			if vs_executer_has_terrain:
-				temp_mesh_array[x][y].height = vs_executer.noise(chunk_point)
+				temp_mesh_array[x][y].height = vs_executer.terrain(chunk_point)
 			if vs_executer_has_uv:
 				temp_mesh_array[x][y].uv = vs_executer.uv(chunk_point, temp_mesh_array[x][y].height)
 			if vs_executer_has_uv2:
@@ -112,6 +114,9 @@ func generate_chunk_mesh(chunk):
 	var mesh = SurfaceTool.new()
 	mesh.begin(Mesh.PRIMITIVE_TRIANGLES)
 	mesh.add_uv(Vector2(0, 0))
+	
+	if terrain_material:
+		mesh.set_material(terrain_material)
 	
 	var offset = Vector3(chunk_size / 2, 0, chunk_size / 2)
 	
@@ -154,6 +159,7 @@ func generate_chunk_mesh(chunk):
 				temp_mesh_array[x + 1][y + 1].color
 			)
 	
+	mesh.generate_normals()
 	return mesh.commit()
 	
 var chunk_cache = {}	
@@ -168,6 +174,7 @@ func generate_chunk(chunk):
 		mesh_instance.name = str("mesh_", chunk.x, "_", chunk.y)
 		add_child(mesh_instance)
 		mesh_instance.mesh = mesh
+		mesh_instance.set_surface_material(0, terrain_material)
 		mesh_instance.translation = Vector3(
 			chunk.x * chunk_size, 0, chunk.y * chunk_size
 		)
