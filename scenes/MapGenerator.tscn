@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://scripts/MapGenerator.gd" type="Script" id=1]
+
+[node name="MapGenerator" type="Spatial" index="0"]
+
+script = ExtResource( 1 )
+regenerate_mesh = true
+chunk_resolution = 16
+square_size = 0.25
+generate_around = null
+load_range = 64.0
+unload_range = 128.0
+uncache_range = 256.0
+noise_function = null
+generate_model = true
+generate_body = false
+
+
