@@ -2,31 +2,32 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/biome-lookup-smooth.png-350fc838d2279379407a5ee1ec48f324.stex"
+path.s3tc="res://.import/biome-lookup-smooth.png-350fc838d2279379407a5ee1ec48f324.s3tc.stex"
+path.etc2="res://.import/biome-lookup-smooth.png-350fc838d2279379407a5ee1ec48f324.etc2.stex"
 
 [deps]
 
 source_file="res://images/biome-lookup-smooth.png"
 source_md5="bd496361d481367788a33ebece885cb6"
 
-dest_files=[ "res://.import/biome-lookup-smooth.png-350fc838d2279379407a5ee1ec48f324.stex" ]
-dest_md5="749175bf82389ae126c1f5cc412480be"
+dest_files=[ "res://.import/biome-lookup-smooth.png-350fc838d2279379407a5ee1ec48f324.s3tc.stex", "res://.import/biome-lookup-smooth.png-350fc838d2279379407a5ee1ec48f324.etc2.stex" ]
+dest_md5="5942f48f963cdf73488dfcee837b3805"
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/normal_map=0
-flags/repeat=0
+flags/repeat=true
 flags/filter=true
-flags/mipmaps=false
+flags/mipmaps=true
 flags/anisotropic=false
-flags/srgb=2
+flags/srgb=1
 process/fix_alpha_border=true
 process/premult_alpha=false
 process/HDR_as_SRGB=false
 stream=false
 size_limit=0
-detect_3d=true
+detect_3d=false
 svg/scale=1.0

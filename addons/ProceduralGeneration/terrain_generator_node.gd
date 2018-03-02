@@ -27,6 +27,10 @@ extends Spatial
 
 # Fix the camera
 
+# Make terrain function return 0-1 and
+# pass it to color function, then
+# multiply later.
+
 export(Material) var terrain_material
 
 export(int) var chunk_resolution = 16 setget _set_chunk_resolution
@@ -83,6 +87,8 @@ func add_all_attributes(mesh, vertex, uv, uv2, color):
 	mesh.add_color(color)
 	mesh.add_vertex(vertex)
 
+export(float) var terrain_height_multiplier = 1.0
+
 func generate_chunk_mesh(chunk):
 	var temp_mesh_array = []
 	
@@ -110,6 +116,7 @@ func generate_chunk_mesh(chunk):
 			if vs_executer_has_color:
 				temp_mesh_array[x][y].color = vs_executer.color(chunk_point, temp_mesh_array[x][y].height)
 				
+			temp_mesh_array[x][y].height *= terrain_height_multiplier
 				
 	var mesh = SurfaceTool.new()
 	mesh.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -235,9 +242,9 @@ func _ready():
 	vs_executer.set_script(noise_function)
 	add_child(vs_executer)
 	
-	vs_executer_has_terrain = vs_executer.has_method("terrain")
-	vs_executer_has_uv			= vs_executer.has_method("uv")
-	vs_executer_has_uv2			= vs_executer.has_method("uv2")
-	vs_executer_has_color		= vs_executer.has_method("color")
+	vs_executer_has_terrain = vs_executer.has_method("terrain") and vs_executer.terrain(Vector2()) != null
+	vs_executer_has_uv			= vs_executer.has_method("uv")			and vs_executer.uv(Vector2(), 0) != null
+	vs_executer_has_uv2			= vs_executer.has_method("uv2")			and vs_executer.uv2(Vector2(), 0) != null
+	vs_executer_has_color		= vs_executer.has_method("color")		and vs_executer.color(Vector2(), 0) != null
 	
 	regen_mesh()
