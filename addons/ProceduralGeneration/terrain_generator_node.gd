@@ -3,6 +3,25 @@ extends Spatial
 
 # ----------------TODO:----------------
 
+# Custom class for the whole generator.
+# Can I make it load with position?
+
+# Unload chunks outside of radius
+
+# Write chunks to file outside of
+# radius.
+# Should be able to detect change in
+# terrain algorithm, and delete cache.
+
+# Use a GDNative library for simplex
+# noise to speed up generation.
+
+# Yet another noise function that
+# instances scenes on the terrain.
+# (Like a tree.)
+
+# -------------NO CAN DO:--------------
+
 # Custom class for script executor that
 # has builtin static functions.
 # Update: seems to be not possible due
@@ -10,22 +29,14 @@ extends Spatial
 # static methods in the node, since it
 # is not yet attached.
 
-# Use more noise functions for
-# generation of uv, uv2, and color.
+# ----------------DONE:----------------
 
-# Custom class for the whole generator.
-# Can I make it load with position?
+# Fix the camera
 
 # Load chunks one at a time in radius
 
-# Unload chunks outside of radius
-
-# Write chunks to file outside of
-# radius.
-# Should be able to detect change in
-# terrain algorith, and delete cache
-
-# Fix the camera
+# Use more noise functions for
+# generation of uv, uv2, and color.
 
 # Make terrain function return 0-1 and
 # pass it to color function, then
@@ -44,8 +55,6 @@ func _set_square_size(new_square_size):
 	recalculate_hidden_parameters()
 	
 var chunk_size = chunk_resolution * square_size
-	
-export(Vector3) var generate_around
 
 export(float) var load_range = 32.0 setget _set_chunk_load_range
 var chunk_load_range = load_range / chunk_resolution * square_size
@@ -192,23 +201,50 @@ func generate_chunk(chunk):
 	
 # Where I figure out where to generate
 
+# TODO: don't do this
+onready var load_target = get_node("../Camera")
+var chunk_queue = []
+
 func point_to_chunk(point):
 	return Vector2(point.x / chunk_size, point.y / chunk_size)
+
+func sort_chunk_queue():
+	# TODO: doesn't actually sort
+	var point_chunk = point_to_chunk(load_target.translation)
 	
-func get_unloaded_chunk_around(point):
-	var point_chunk = point_to_chunk(point)
+	var chunk_id = 0
+	for chunk in chunk_queue:
+		if chunk.distance_to(point_chunk) > chunk_load_range:
+			chunk_queue
+			
+func populate_chunk_queue():
+	# TODO: populate from origin, not corner
+	var point_chunk = point_to_chunk(load_target.translation)
 	
 	for x in range(point_chunk.x - chunk_load_range, point_chunk.x + chunk_load_range + 1):
 		if not chunk_cache.has(x):
 			chunk_cache[x] = {}
 		for y in range(point_chunk.y - chunk_load_range, point_chunk.y + chunk_load_range + 1):
-			var distance_to_chunk = Vector2(x, y) - point_chunk
-			if abs(distance_to_chunk.length()) < chunk_load_range:
-				if not chunk_cache[x].has(y):
-					return Vector2(x, y)
+			var current_chunk = Vector2(x, y)
+			var distance_to_chunk = current_chunk - point_chunk
+			if point_chunk.distance_to(current_chunk) < chunk_load_range:
+				if not chunk_cache[x].has(y) and not chunk_queue.has(current_chunk):
+					chunk_queue.append(current_chunk)
+					print(str("Added chunk to queue: ", current_chunk))
 					
+	sort_chunk_queue()
+	
+export(float) var chunk_load_rate = 0.2
+var chunk_last_loaded = 0.0
+func process_chunk_queue(delta):
+	chunk_last_loaded += delta
+	
+	if chunk_last_loaded > chunk_load_rate:
+		chunk_last_loaded -= chunk_load_rate
+		print("attempting to generate chunk...")
+		generate_chunk(chunk_queue.pop_front())
 
-func generate_around_point(point):
+func generate_all_around_point(point): #TODO: remove
 	var point_chunk = point_to_chunk(point)
 	
 	for x in range(point_chunk.x - chunk_load_range, point_chunk.x + chunk_load_range + 1):
@@ -247,4 +283,7 @@ func _ready():
 	vs_executer_has_uv2			= vs_executer.has_method("uv2")			and vs_executer.uv2(Vector2(), 0) != null
 	vs_executer_has_color		= vs_executer.has_method("color")		and vs_executer.color(Vector2(), 0) != null
 	
-	regen_mesh()
+	populate_chunk_queue()
+	
+func _process(delta):
+	process_chunk_queue(delta)
