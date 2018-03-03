@@ -186,7 +186,7 @@ uncache_range = 128.0
 generate_model = true
 generate_physics = false
 terrain_height_multiplier = 50.0
-chunk_load_rate = 0.5
+chunk_load_rate = 0.1
 noise_function = ExtResource( 5 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="." index="4"]

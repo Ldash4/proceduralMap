@@ -178,11 +178,16 @@ func generate_chunk_mesh(chunk):
 	mesh.generate_normals()
 	return mesh.commit()
 	
-var chunk_cache = {}	
+var chunk_cache_dict = {}
+var chunk_cache_array = []
+
+func add_to_cache(x, y, chunk):
+	chunk_cache_dict[x][y] = chunk
+	chunk_cache_array.append(Vector2(x, y))
 
 func generate_chunk(chunk):
-	if not chunk_cache.has(chunk.x):
-		chunk_cache[chunk.x] = {}
+	if not chunk_cache_dict.has(chunk.x):
+		chunk_cache_dict[chunk.x] = {}
 	
 	var mesh = generate_chunk_mesh(chunk)
 	if generate_model:
@@ -195,9 +200,12 @@ func generate_chunk(chunk):
 			chunk.x * chunk_size, 0, chunk.y * chunk_size
 		)
 		
-		chunk_cache[chunk.x][chunk.y] = mesh_instance
+		chunk_cache_dict[chunk.x][chunk.y] = mesh_instance
 	
-	return chunk_cache[chunk.x][chunk.y]
+	return chunk_cache_dict[chunk.x][chunk.y]
+	
+func unload_chunk(chunk):
+	chunk_cache_dict[chunk.x][chunk.y].hide()
 	
 # Where I figure out where to generate
 
@@ -207,33 +215,49 @@ var chunk_queue = []
 
 func point_to_chunk(point):
 	return Vector2(point.x / chunk_size, point.y / chunk_size)
+	
+func get_load_target_chunk():
+	return Vector2(
+		load_target.translation.x / chunk_size,
+		load_target.translation.z / chunk_size
+	)
 
 func sort_chunk_queue():
 	# TODO: doesn't actually sort
-	var point_chunk = point_to_chunk(load_target.translation)
+	var point_chunk = get_load_target_chunk()
 	
 	var chunk_id = 0
 	for chunk in chunk_queue:
 		if chunk.distance_to(point_chunk) > chunk_load_range:
-			chunk_queue
+			chunk_queue.remove(chunk_id)
 			
 func populate_chunk_queue():
 	# TODO: populate from origin, not corner
-	var point_chunk = point_to_chunk(load_target.translation)
+	var point_chunk = get_load_target_chunk()
 	
 	for x in range(point_chunk.x - chunk_load_range, point_chunk.x + chunk_load_range + 1):
-		if not chunk_cache.has(x):
-			chunk_cache[x] = {}
+		if not chunk_cache_dict.has(x):
+			chunk_cache_dict[x] = {}
 		for y in range(point_chunk.y - chunk_load_range, point_chunk.y + chunk_load_range + 1):
 			var current_chunk = Vector2(x, y)
 			var distance_to_chunk = current_chunk - point_chunk
 			if point_chunk.distance_to(current_chunk) < chunk_load_range:
-				if not chunk_cache[x].has(y) and not chunk_queue.has(current_chunk):
-					chunk_queue.append(current_chunk)
-					print(str("Added chunk to queue: ", current_chunk))
+				if not chunk_cache_dict[x].has(y):
+					if not chunk_queue.has(current_chunk):
+						chunk_queue.append(current_chunk)
+				else:
+					chunk_cache_dict[x][y].show()
 					
 	sort_chunk_queue()
 	
+func unload_chunks():
+	var point_chunk = get_load_target_chunk()
+	
+	for chunk in chunk_cache_array:
+		if point_chunk.distance_to(chunk) > chunk_load_range:
+			if chunk_cache_dict[chunk.x][chunk.y].visible:
+				unload_chunk(chunk)
+			
 export(float) var chunk_load_rate = 0.2
 var chunk_last_loaded = 0.0
 func process_chunk_queue(delta):
@@ -241,29 +265,11 @@ func process_chunk_queue(delta):
 	
 	if chunk_last_loaded > chunk_load_rate:
 		chunk_last_loaded -= chunk_load_rate
-		print("attempting to generate chunk...")
+		unload_chunks()
+		populate_chunk_queue()
+		var next_chunk = chunk_queue.pop_front()
+		add_to_cache(next_chunk.x, next_chunk.y, generate_chunk(next_chunk))
 		generate_chunk(chunk_queue.pop_front())
-
-func generate_all_around_point(point): #TODO: remove
-	var point_chunk = point_to_chunk(point)
-	
-	for x in range(point_chunk.x - chunk_load_range, point_chunk.x + chunk_load_range + 1):
-		if not chunk_cache.has(x):
-			chunk_cache[x] = {}
-		for y in range(point_chunk.y - chunk_load_range, point_chunk.y + chunk_load_range + 1):
-			var distance_to_chunk = Vector2(x, y) - point_chunk
-			if abs(distance_to_chunk.length()) < chunk_load_range:
-				if not chunk_cache[x].has(y):
-					generate_chunk(Vector2(x, y))
-
-# DEBUG ZONE
-
-func regen_mesh():
-	for child in get_children():
-		if child is MeshInstance:
-			child.queue_free()
-			
-	generate_around_point(Vector2(0, 0))
 
 var vs_executer
 var vs_executer_has_terrain
@@ -286,4 +292,5 @@ func _ready():
 	populate_chunk_queue()
 	
 func _process(delta):
-	process_chunk_queue(delta)
+	if not Engine.editor_hint:
+		process_chunk_queue(delta)
